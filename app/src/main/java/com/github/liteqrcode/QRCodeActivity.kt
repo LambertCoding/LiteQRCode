@@ -6,10 +6,7 @@ import android.util.Log
 import android.view.KeyEvent
 import com.github.liteqrcode.codec.QRCodeDecoder
 import com.github.liteqrcode.image.GlideEngine
-import com.google.zxing.ResultPoint
 import com.huantansheng.easyphotos.EasyPhotos
-import com.journeyapps.barcodescanner.BarcodeCallback
-import com.journeyapps.barcodescanner.BarcodeResult
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
@@ -18,34 +15,25 @@ import kotlinx.android.synthetic.main.activity_qrcode.*
 
 class QRCodeActivity : BaseActivity() {
 
-    private var isLight = false
     private val requestCode = 132
+
+    private lateinit var qrCodeHelper: ScanQRCodeHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_qrcode)
 
-        barcode_scanner.decodeContinuous(object : BarcodeCallback {
-            override fun barcodeResult(result: BarcodeResult) {
-                if (result.text == null) return
+        qrCodeHelper = ScanQRCodeHelper(barcode_scanner, false, object : ScanQRCodeHelper.ScanCallback {
+            override fun onSuccess(qrCode: String) {
 
-                barcode_scanner.setStatusText(result.text)
-                Log.e("qwe", "result = ${result.text}")
-                showTips(result.text)
+                barcode_scanner.setStatusText(qrCode)
+                Log.e("qwe", "result = $qrCode")
+                showTips(qrCode)
+
             }
-
-            override fun possibleResultPoints(resultPoints: List<ResultPoint>) {}
         })
 
-        tv_zxing_flashlight.setOnClickListener {
-            if (!isLight) {
-                barcode_scanner.setTorchOn()
-                isLight = true
-            } else {
-                isLight = false
-                barcode_scanner.setTorchOff()
-            }
-        }
+        tv_zxing_flashlight.setOnClickListener { qrCodeHelper.toggleFlash() }
 
         tv_zxing_gallery.setOnClickListener {
             EasyPhotos.createAlbum(this, false, GlideEngine.instance).start(requestCode)
@@ -69,16 +57,16 @@ class QRCodeActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        barcode_scanner.resume()
+        qrCodeHelper.onResume()
     }
 
     override fun onPause() {
         super.onPause()
-        barcode_scanner.pause()
+        qrCodeHelper.onPause()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        return barcode_scanner.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
+        return qrCodeHelper.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
     }
 
 }
